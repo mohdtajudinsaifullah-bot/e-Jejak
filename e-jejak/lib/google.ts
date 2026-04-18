@@ -1,17 +1,16 @@
-import { google } from "googleapis";
-import path from "path";
+import { google } from 'googleapis';
 
 export async function getGoogleSheets() {
-  // Sistem akan cari fail rahsia JSON kau kat dalam folder projek
   const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(process.cwd(), "google-credentials.json"),
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    credentials: {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      // Kita guna .replace ni supaya Vercel boleh baca 'Enter' (\n) dalam kunci panjang tu
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
   const client = await auth.getClient();
-  
-  // @ts-ignore - abaikan error jenis (type error) pada client
-  const sheets = google.sheets({ version: "v4", auth: client });
-
+  const sheets = google.sheets({ version: 'v4', auth: client as any });
   return sheets;
 }
