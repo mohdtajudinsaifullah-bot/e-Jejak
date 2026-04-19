@@ -40,12 +40,14 @@ export default async function AdminDashboard() {
   const user = await currentUser();
   if (!user) redirect('/');
   
-  // Tangkap USERNAME dari Clerk
-  const username = user.username || '';
+  const username = user.username ? user.username.trim().toLowerCase() : '';
+  const userEmail = user.emailAddresses[0]?.emailAddress?.trim().toLowerCase() || '';
 
   let allUsers: any[] = [];
   let allPenempatan: any[] = [];
-  let adminUsernames: string[] = [];
+  
+  // PENANDA AKSES ADMIN
+  let hasAdminAccess = false;
 
   try {
     const sheets = await getGoogleSheets();
@@ -57,12 +59,10 @@ export default async function AdminDashboard() {
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Admin!A:A' }),
     ]);
 
-    // 1. SEMAK AKSES ADMIN DARI SHEET BERDASARKAN USERNAME
-    adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).trim().toLowerCase());
-    const currentUsername = username ? username.trim().toLowerCase() : '';
+    const adminList = (adminRes.data.values || []).flat().map(e => String(e).trim().toLowerCase());
     
-    if (!currentUsername || !adminUsernames.includes(currentUsername)) {
-      redirect('/dashboard'); // Bukan admin? Tendang ke dashboard biasa!
+    if ((username && adminList.includes(username)) || (userEmail && adminList.includes(userEmail))) {
+      hasAdminAccess = true;
     }
 
     allUsers = usersRes.data.values?.filter(row => row[0] && row[0] !== 'ic_no' && row[1]) || [];
@@ -72,7 +72,11 @@ export default async function AdminDashboard() {
     console.error("Gagal tarik data Admin:", error);
   }
 
-  // SUSUN MASTER DATA
+  // JIKA BUKAN ADMIN, TENDANG KELUAR DI SINI (Luar kotak try...catch)
+  if (!hasAdminAccess) {
+    redirect('/dashboard'); 
+  }
+
   const masterData = allUsers.map(u => {
     const userPlacements = allPenempatan.filter(p => p[0] === u[0]);
     userPlacements.sort((a, b) => {
@@ -120,7 +124,6 @@ export default async function AdminDashboard() {
              <div className="text-[10px] font-bold text-slate-400 uppercase">Jumlah Pegawai</div>
           </div>
         </div>
-        
         <AdminTable masterData={masterData} />
       </div>
     </div>

@@ -37,18 +37,11 @@ function getDuration(startStr: string, endStr?: string) {
   const start = parseMalayDate(startStr);
   if (!start) return '';
   const end = endStr && endStr.trim() !== '-' ? parseMalayDate(endStr) || new Date() : new Date();
-
   let years = end.getFullYear() - start.getFullYear();
   let months = end.getMonth() - start.getMonth();
-
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-
+  if (months < 0) { years--; months += 12; }
   if (years < 0) return ''; 
   if (years === 0 && months === 0) return '(Kurang 1 bln)';
-
   let res = [];
   if (years > 0) res.push(`${years} thn`);
   if (months > 0) res.push(`${months} bln`);
@@ -60,19 +53,22 @@ export default async function Dashboard() {
   if (!user) redirect('/');
   
   const userId = user.id;
-  const username = user.username || '';
+  const username = user.username ? user.username.trim().toLowerCase() : '';
+  const userEmail = user.emailAddresses[0]?.emailAddress?.trim().toLowerCase() || '';
 
   let userData = null;
   let penempatanData: any[] = [];
   let pangkatData: any[] = [];
   let spousesData: any[] = [];
   let childrenData: any[] = [];
+  
+  // PENANDA VIP (Diasingkan dari try...catch)
+  let isAdminVIP = false;
 
   try {
     const sheets = await getGoogleSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID;
 
-    // Tarik Tab Admin sekali untuk cek status VIP
     const [usersRes, penempatanRes, warisRes, pangkatRes, adminRes] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Users!A:Z' }),
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Penempatan!A:Z' }),
@@ -81,30 +77,30 @@ export default async function Dashboard() {
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Admin!A:A' }),
     ]);
 
-    // LALUAN VIP ADMIN AUTO-REDIRECT!
-    const adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).trim().toLowerCase());
-    const currentUsername = username ? username.trim().toLowerCase() : '';
+    const adminList = (adminRes.data.values || []).flat().map(e => String(e).trim().toLowerCase());
     
-    if (currentUsername && adminUsernames.includes(currentUsername)) {
-      redirect('/admin');
+    // Semak jika Username ATAU Emel ada dalam senarai Admin
+    if ((username && adminList.includes(username)) || (userEmail && adminList.includes(userEmail))) {
+      isAdminVIP = true;
     }
 
     userData = (usersRes.data.values || []).find((row) => row[1] === userId);
-    
     const penempatanRaw = penempatanRes.data.values || [];
     penempatanData = penempatanRaw.map((row, index) => ({ row, rowIndex: index + 1 })).filter(item => item.row[1] === userId);
-
     const pangkatRaw = pangkatRes.data.values || [];
     pangkatData = pangkatRaw.map((row, index) => ({ row, rowIndex: index + 1 })).filter(item => item.row[1] === userId);
-
     const warisRaw = warisRes.data.values || [];
     const warisFiltered = warisRaw.map((row, index) => ({ row, rowIndex: index + 1 })).filter(item => item.row[1] === userId);
-    
     spousesData = warisFiltered.filter(item => item.row[2] && item.row[2].trim() !== '' && item.row[2].trim() !== '-');
     childrenData = warisFiltered.filter(item => item.row[5] && item.row[5].trim() !== '' && item.row[5].trim() !== '-');
 
   } catch (error) {
     console.error("Gagal tarik data Google Sheets:", error);
+  }
+
+  // JIKA DIA ADMIN, TERUS TENDANG KE /ADMIN DI SINI (Luar dari kotak try...catch)
+  if (isAdminVIP) {
+    redirect('/admin');
   }
 
   const sortedPenempatan = [...penempatanData].sort((a, b) => {
@@ -126,7 +122,6 @@ export default async function Dashboard() {
 
       {userData ? (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          
           <div className="xl:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-t-blue-600 border-x border-b border-slate-200 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -z-10 opacity-50"></div>
@@ -158,16 +153,11 @@ export default async function Dashboard() {
                   <p className="text-[10px] text-blue-500 uppercase tracking-widest font-bold">E-mel Rasmi</p>
                   <p className="text-sm font-medium text-slate-800 mt-1">{userData[2] || '-'}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] text-blue-500 uppercase tracking-widest font-bold">Alamat Terkini</p>
-                  <p className="text-sm font-medium text-slate-800 mt-1 leading-relaxed">{userData[4] || '-'}</p>
-                </div>
               </div>
             </div>
           </div>
 
           <div className="xl:col-span-3 space-y-6">
-            
             <div className="bg-white rounded-xl shadow-md border-t-4 border-t-indigo-600 border-x border-b border-slate-200 overflow-hidden">
               <div className="bg-indigo-50 border-b border-indigo-100 p-4 flex justify-between items-center">
                 <h3 className="text-base font-bold text-indigo-900 tracking-wide flex items-center gap-2"><span>🏢</span> Rekod Perjawatan & Penempatan</h3>
@@ -239,7 +229,6 @@ export default async function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
               <div className="bg-white rounded-xl shadow-md border-t-4 border-t-rose-500 border-x border-b border-slate-200 overflow-hidden flex flex-col">
                 <div className="bg-rose-50 border-b border-rose-100 p-4 flex justify-between items-center">
                   <h3 className="text-base font-bold text-rose-900 tracking-wide flex items-center gap-2"><span>❤️</span> Maklumat Pasangan</h3>
@@ -257,7 +246,6 @@ export default async function Dashboard() {
                       </div>
                     </div>
                   )) : <p className="text-center text-slate-400 italic py-4">Tiada rekod pasangan.</p>}
-                  {spousesData.length >= 4 && <p className="text-[10px] text-center text-rose-400 mt-2 italic">*Maksimum 4 rekod pasangan dipaparkan.</p>}
                 </div>
               </div>
 
@@ -272,17 +260,14 @@ export default async function Dashboard() {
                       <EditAnakModal rowData={item.row} rowIndex={item.rowIndex} />
                       <p className="text-sm font-bold text-slate-800 pr-8">{item.row[5]}</p>
                       <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <span className="text-amber-600">🎓</span> {item.row[6] || 'Tiada Maklumat Sekolah'}
+                        <span className="text-amber-600">🎓</span> {item.row[6] || 'Tiada Sekolah'}
                       </p>
                     </div>
                   )) : <p className="text-center text-slate-400 italic py-4">Tiada rekod anak.</p>}
                 </div>
               </div>
-
             </div>
-
           </div>
-
         </div>
       ) : (
         <BorangProfilBaru clerkId={userId} />
