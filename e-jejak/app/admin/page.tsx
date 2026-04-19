@@ -58,9 +58,10 @@ export default async function AdminDashboard() {
     ]);
 
     // 1. SEMAK AKSES ADMIN DARI SHEET BERDASARKAN USERNAME
-    adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).toLowerCase());
+    adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).trim().toLowerCase());
+    const currentUsername = username ? username.trim().toLowerCase() : '';
     
-    if (!username || !adminUsernames.includes(username.toLowerCase())) {
+    if (!currentUsername || !adminUsernames.includes(currentUsername)) {
       redirect('/dashboard'); // Bukan admin? Tendang ke dashboard biasa!
     }
 

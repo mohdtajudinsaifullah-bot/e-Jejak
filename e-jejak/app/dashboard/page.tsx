@@ -82,8 +82,10 @@ export default async function Dashboard() {
     ]);
 
     // LALUAN VIP ADMIN AUTO-REDIRECT!
-    const adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).toLowerCase());
-    if (username && adminUsernames.includes(username.toLowerCase())) {
+    const adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).trim().toLowerCase());
+    const currentUsername = username ? username.trim().toLowerCase() : '';
+    
+    if (currentUsername && adminUsernames.includes(currentUsername)) {
       redirect('/admin');
     }
 
