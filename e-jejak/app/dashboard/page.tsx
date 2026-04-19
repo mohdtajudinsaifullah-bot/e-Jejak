@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { getGoogleSheets } from '@/lib/google'
+import BorangProfilBaru from '@/components/BorangProfilBaru'
 
 // TAMBAHKAN DUA BARIS KODE INI DI SINI BRO:
 export const dynamic = 'force-dynamic';
@@ -275,12 +276,7 @@ export default async function Dashboard() {
 
         </div>
       ) : (
-        <div className="bg-amber-50 text-amber-800 p-8 rounded-xl border border-amber-200 text-center max-w-lg mx-auto mt-12 shadow-sm">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">⚠️</div>
-          <p className="text-lg font-bold mb-2">Maklumat Peribadi Belum Dikemaskini!</p>
-          <p className="text-sm mb-6 text-amber-700">Sila maklumkan kepada Admin untuk mendaftarkan maklumat anda ke dalam pangkalan data.</p>
-          <p className="font-mono bg-white p-3 rounded-lg border border-amber-300 shadow-inner inline-block text-sm font-bold">{userId}</p>
-        </div>
+        <BorangProfilBaru clerkId={userId} />
       )}
     </div>
   )
