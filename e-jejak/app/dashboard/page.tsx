@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { getGoogleSheets } from '@/lib/google'
 
+// TAMBAHKAN DUA BARIS KODE INI DI SINI BRO:
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Import semua Modal Tambah
 import PenempatanModal from '@/components/PenempatanModal'
 import PangkatModal from '@/components/PangkatModal'
