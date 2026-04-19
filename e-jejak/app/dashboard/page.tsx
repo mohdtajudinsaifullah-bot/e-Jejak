@@ -1,20 +1,17 @@
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { getGoogleSheets } from '@/lib/google'
 import BorangProfilBaru from '@/components/BorangProfilBaru'
 
-// TAMBAHKAN DUA BARIS KODE INI DI SINI BRO:
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Import semua Modal Tambah
 import PenempatanModal from '@/components/PenempatanModal'
 import PangkatModal from '@/components/PangkatModal'
 import PasanganModal from '@/components/PasanganModal'
 import AnakModal from '@/components/AnakModal'
 
-// Import semua Modal Kemaskini
 import EditPenempatanModal from '@/components/EditPenempatanModal'
 import EditPangkatModal from '@/components/EditPangkatModal'
 import EditPasanganModal from '@/components/EditPasanganModal'
@@ -59,8 +56,11 @@ function getDuration(startStr: string, endStr?: string) {
 }
 
 export default async function Dashboard() {
-  const { userId } = await auth();
-  if (!userId) redirect('/');
+  const user = await currentUser();
+  if (!user) redirect('/');
+  
+  const userId = user.id;
+  const username = user.username || '';
 
   let userData = null;
   let penempatanData: any[] = [];
@@ -72,16 +72,23 @@ export default async function Dashboard() {
     const sheets = await getGoogleSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID;
 
-    const [usersRes, penempatanRes, warisRes, pangkatRes] = await Promise.all([
+    // Tarik Tab Admin sekali untuk cek status VIP
+    const [usersRes, penempatanRes, warisRes, pangkatRes, adminRes] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Users!A:Z' }),
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Penempatan!A:Z' }),
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Waris!A:Z' }),
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Kenaikan_Pangkat!A:Z' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Admin!A:A' }),
     ]);
+
+    // LALUAN VIP ADMIN AUTO-REDIRECT!
+    const adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).toLowerCase());
+    if (username && adminUsernames.includes(username.toLowerCase())) {
+      redirect('/admin');
+    }
 
     userData = (usersRes.data.values || []).find((row) => row[1] === userId);
     
-    // TANGKAP NOMBOR BARIS UNTUK SEMUA JADUAL
     const penempatanRaw = penempatanRes.data.values || [];
     penempatanData = penempatanRaw.map((row, index) => ({ row, rowIndex: index + 1 })).filter(item => item.row[1] === userId);
 

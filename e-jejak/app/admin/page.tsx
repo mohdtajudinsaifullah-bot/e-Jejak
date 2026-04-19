@@ -39,28 +39,29 @@ export const revalidate = 0;
 export default async function AdminDashboard() {
   const user = await currentUser();
   if (!user) redirect('/');
-  const userEmail = user.emailAddresses[0]?.emailAddress;
+  
+  // Tangkap USERNAME dari Clerk
+  const username = user.username || '';
 
   let allUsers: any[] = [];
   let allPenempatan: any[] = [];
-  let adminEmails: string[] = [];
+  let adminUsernames: string[] = [];
 
   try {
     const sheets = await getGoogleSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID;
 
-    // Tarik 3 data serentak: Users, Penempatan, dan tab Admin
     const [usersRes, penempatanRes, adminRes] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Users!A:Z' }),
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Penempatan!A:Z' }),
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Admin!A:A' }),
     ]);
 
-    // 1. SEMAK AKSES ADMIN DARI SHEET
-    adminEmails = (adminRes.data.values || []).flat().map(e => e.toLowerCase());
+    // 1. SEMAK AKSES ADMIN DARI SHEET BERDASARKAN USERNAME
+    adminUsernames = (adminRes.data.values || []).flat().map(e => String(e).toLowerCase());
     
-    if (!adminEmails.includes(userEmail.toLowerCase())) {
-      redirect('/dashboard'); // Bukan admin? Tendang keluar!
+    if (!username || !adminUsernames.includes(username.toLowerCase())) {
+      redirect('/dashboard'); // Bukan admin? Tendang ke dashboard biasa!
     }
 
     allUsers = usersRes.data.values?.filter(row => row[0] && row[0] !== 'ic_no' && row[1]) || [];
@@ -119,7 +120,6 @@ export default async function AdminDashboard() {
           </div>
         </div>
         
-        {/* PANGGIL KOMPONEN CLIENT UNTUK SEARCH & FILTER */}
         <AdminTable masterData={masterData} />
       </div>
     </div>
