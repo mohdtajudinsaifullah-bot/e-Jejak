@@ -1,11 +1,21 @@
 import { google } from 'googleapis';
 
 export async function getGoogleSheets() {
+  // 1. Ambil Kunci Rahsia
+  let privateKey = process.env.GOOGLE_PRIVATE_KEY || '';
+  
+  // 2. Buang tanda " kat awal dan akhir kalau ter-copy secara tak sengaja
+  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    privateKey = privateKey.slice(1, -1);
+  }
+  
+  // 3. Pastikan format 'Enter' dibaca dengan betul oleh sistem
+  privateKey = privateKey.replace(/\\n/g, '\n');
+
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      // Kita guna .replace ni supaya Vercel boleh baca 'Enter' (\n) dalam kunci panjang tu
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      private_key: privateKey,
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
