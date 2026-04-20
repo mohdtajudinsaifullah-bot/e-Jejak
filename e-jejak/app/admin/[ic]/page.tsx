@@ -37,14 +37,19 @@ function getDuration(startStr: string, endStr?: string) {
   return `(${res.join(' ')})`;
 }
 
-export default async function AdminUserProfile({ params }: { params: { ic: string } }) {
+// Guna "props: any" supaya kalis ralat tak kira apa nama folder yang kau letak
+export default async function AdminUserProfile(props: any) {
+  // 1. TANGKAP NOMBOR IC (Kalis ralat Next.js 15 & Kalis salah nama folder)
+  const params = await props.params;
+  const icNo = String(params?.ic || params?.id || Object.values(params)[0] || '').trim();
+
   const user = await currentUser();
   if (!user) redirect('/');
 
   const username = user.username ? user.username.trim().toLowerCase() : '';
   const userEmail = user.emailAddresses[0]?.emailAddress?.trim().toLowerCase() || '';
 
-  // Semak Keselamatan Admin
+  // 2. SEMAK KESELAMATAN ADMIN
   let hasAdminAccess = false;
   try {
     const sheets = await getGoogleSheets();
@@ -57,7 +62,6 @@ export default async function AdminUserProfile({ params }: { params: { ic: strin
 
   if (!hasAdminAccess) redirect('/dashboard');
 
-  const icNo = params.ic;
   let userData = null;
   let penempatanData: any[] = [];
   let pangkatData: any[] = [];
@@ -75,12 +79,12 @@ export default async function AdminUserProfile({ params }: { params: { ic: strin
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Kenaikan_Pangkat!A:Z' })
     ]);
 
-    // Cari rekod berdasarkan IC
-    userData = (usersRes.data.values || []).find((row) => row[0] === icNo);
-    penempatanData = (penempatanRes.data.values || []).filter((row) => row[0] === icNo);
-    pangkatData = (pangkatRes.data.values || []).filter((row) => row[0] === icNo);
+    // 3. CARI REKOD (Guna .trim() supaya kalis spasi)
+    userData = (usersRes.data.values || []).find((row) => String(row[0]).trim() === icNo);
+    penempatanData = (penempatanRes.data.values || []).filter((row) => String(row[0]).trim() === icNo);
+    pangkatData = (pangkatRes.data.values || []).filter((row) => String(row[0]).trim() === icNo);
     
-    const warisRaw = (warisRes.data.values || []).filter((row) => row[0] === icNo);
+    const warisRaw = (warisRes.data.values || []).filter((row) => String(row[0]).trim() === icNo);
     spousesData = warisRaw.filter(row => row[2] && row[2].trim() !== '' && row[2].trim() !== '-');
     childrenData = warisRaw.filter(row => row[5] && row[5].trim() !== '' && row[5].trim() !== '-');
 
@@ -88,12 +92,15 @@ export default async function AdminUserProfile({ params }: { params: { ic: strin
     console.error("Gagal tarik data Pegawai:", error);
   }
 
-  if (!userData) {
+  // JIKA REKOD MASIH TAK JUMPA
+  if (!userData || !icNo) {
     return (
       <div className="min-h-screen bg-slate-100 p-8 flex items-center justify-center">
         <div className="bg-white p-8 rounded-xl shadow text-center">
           <h2 className="text-xl font-bold text-red-600 mb-2">Rekod Tidak Dijumpai</h2>
-          <p className="text-slate-600 mb-6">Tiada pegawai dengan No. Kad Pengenalan {icNo}.</p>
+          <p className="text-slate-600 mb-6 font-mono bg-slate-50 p-2 rounded mt-2">
+            IC Dicari: [{icNo || 'KOSONG'}]
+          </p>
           <Link href="/admin" className="px-4 py-2 bg-slate-800 text-white rounded-lg">Kembali ke Direktori</Link>
         </div>
       </div>
@@ -110,7 +117,7 @@ export default async function AdminUserProfile({ params }: { params: { ic: strin
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans">
       <div className="mb-6">
-        <Link href="/admin" className="text-sm font-bold text-slate-500 hover:text-amber-600 flex items-center gap-2">
+        <Link href="/admin" className="text-sm font-bold text-slate-500 hover:text-amber-600 flex items-center gap-2 transition-colors">
           <span>&larr;</span> Kembali ke Direktori Admin
         </Link>
       </div>
@@ -176,7 +183,7 @@ export default async function AdminUserProfile({ params }: { params: { ic: strin
                         <p className="text-xs text-slate-500 mt-0.5">{item[2] || '-'}, {item[5] || '-'}</p>
                       </td>
                       <td className="px-4 py-3">{item[6] || '-'}</td>
-                      <td className="px-4 py-3">{item[7] && item[7] !== '-' ? item[7] : <span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-0.5 rounded text-xs">KINI</span>}</td>
+                      <td className="px-4 py-3">{item[7] && item[7] !== '-' ? item[7] : <span className="text-emerald-600 font-bold bg-emerald-100 px-2 py-0.5 rounded text-xs border border-emerald-200">KINI</span>}</td>
                       <td className="px-4 py-3 font-bold text-slate-700">{getDuration(item[6], item[7])}</td>
                     </tr>
                   )) : <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400 italic">Tiada rekod.</td></tr>}
