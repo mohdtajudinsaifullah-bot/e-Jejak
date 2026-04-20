@@ -89,6 +89,7 @@ export default async function AdminDashboard() {
     const durationObj = getDuration(u[5]);
     
     return {
+      ic: u[0],
       nama: u[3],
       emel: u[2],
       gredTerkini: terkini[4] || '-',

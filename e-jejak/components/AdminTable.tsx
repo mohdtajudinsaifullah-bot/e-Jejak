@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function AdminTable({ masterData }: { masterData: any[] }) {
   const [search, setSearch] = useState('');
@@ -112,7 +113,9 @@ export default function AdminTable({ masterData }: { masterData: any[] }) {
                   {pegawai.tempohKhidmat}
                 </td>
                 <td className="px-4 py-4 text-center">
-                   <button className="text-[10px] font-bold bg-white text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-all shadow-sm">VIEW</button>
+                   <Link href={`/admin/${pegawai.ic}`} className="text-[10px] font-bold bg-white text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-white transition-all shadow-sm">
+                    VIEW
+                  </Link>
                 </td>
               </tr>
             )) : (
